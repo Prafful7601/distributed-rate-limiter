@@ -14,14 +14,15 @@ fixed_limiter = FixedWindowLimiter(limit=10)
 sliding_limiter = SlidingWindowLimiter(limit=10, window=60)
 
 
-EXCLUDED_PATHS = {
+EXCLUDED_PATH_PREFIXES = [
     "/dashboard",
     "/stats",
-    "/system",
     "/top_ips",
+    "/active_clients",
+    "/system",
     "/docs",
     "/openapi.json"
-}
+]
 
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
@@ -30,10 +31,11 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
 
         path = request.url.path
 
-        if path in EXCLUDED_PATHS:
-            return await call_next(request)
+        # allow monitoring endpoints without limits
+        for prefix in EXCLUDED_PATH_PREFIXES:
+            if path.startswith(prefix):
+                return await call_next(request)
 
-        # identify client
         api_key = request.query_params.get("api_key")
 
         if api_key:
@@ -41,7 +43,6 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         else:
             user_id = request.client.host
 
-        # choose algorithm
         algorithm = request.query_params.get("algorithm", "token")
 
         if algorithm == "fixed":
@@ -53,7 +54,6 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         else:
             allowed = token_limiter.allow_request(user_id)
 
-        # analytics
         redis_client.zincrby("top_ips", 1, user_id)
 
         redis_client.zadd(
