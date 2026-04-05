@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
+from pathlib import Path
 
 from app.middleware.rate_limiter import RateLimiterMiddleware
 from app.storage.redis_client import redis_client
@@ -33,4 +34,7 @@ def stats():
 
 @app.get("/dashboard")
 def dashboard():
-    return FileResponse("dashboard/index.html")
+
+    dashboard_path = Path(__file__).resolve().parent.parent / "dashboard" / "index.html"
+
+    return FileResponse(dashboard_path)
