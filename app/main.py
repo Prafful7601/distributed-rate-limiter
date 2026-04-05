@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.middleware.rate_limiter import RateLimiterMiddleware
 from app.storage.redis_client import redis_client
@@ -12,6 +13,9 @@ app = FastAPI()
 
 app.add_middleware(RateLimiterMiddleware)
 
+# serve css/js files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 @app.get("/", response_class=HTMLResponse)
 def home():
@@ -19,20 +23,21 @@ def home():
     return """
     <html>
     <head>
-        <title>Distributed Rate Limiter API</title>
+        <title>Distributed Rate Limiter</title>
     </head>
-    <body style="font-family: Arial; padding:40px">
+
+    <body style="font-family:Arial;padding:40px">
 
     <h1>Distributed Rate Limiter</h1>
 
-    <p>This service demonstrates distributed API rate limiting using FastAPI and Redis.</p>
+    <p>Production style distributed rate limiting system.</p>
 
-    <h2>Endpoints</h2>
+    <h3>Navigation</h3>
 
     <ul>
-        <li><a href="/api/data">Test API Endpoint</a></li>
+        <li><a href="/api/data">Test API</a></li>
         <li><a href="/dashboard">Monitoring Dashboard</a></li>
-        <li><a href="/docs">Swagger Documentation</a></li>
+        <li><a href="/docs">API Docs</a></li>
     </ul>
 
     </body>
@@ -43,9 +48,7 @@ def home():
 @app.get("/api/data")
 def api_data():
 
-    return {
-        "message": "Request successful"
-    }
+    return {"message": "Request successful"}
 
 
 @app.get("/stats")
@@ -83,14 +86,6 @@ def top_ips():
         {"ip": ip, "requests": int(score)}
         for ip, score in data
     ]
-
-
-@app.get("/active_clients")
-def active_clients():
-
-    count = redis_client.zcard("top_ips")
-
-    return {"active_clients": count}
 
 
 @app.get("/dashboard")
