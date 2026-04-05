@@ -21,10 +21,15 @@ background:#020617;
 padding:15px;
 display:flex;
 justify-content:space-between;
+align-items:center;
+}
+
+.nav h2{
+margin:0;
 }
 
 .container{
-width:1000px;
+width:1100px;
 margin:auto;
 margin-top:30px;
 }
@@ -43,10 +48,20 @@ justify-content:space-between;
 
 .metric{
 background:#020617;
-padding:15px;
-border-radius:6px;
-width:30%;
+padding:20px;
+border-radius:8px;
+width:23%;
 text-align:center;
+}
+
+ul{
+padding-left:20px;
+}
+
+.footer{
+text-align:center;
+margin-top:40px;
+color:#94a3b8;
 }
 
 </style>
@@ -57,7 +72,6 @@ text-align:center;
 
 <div class="nav">
 <h2>Distributed Rate Limiter</h2>
-<a href="/" style="color:white">API</a>
 </div>
 
 <div class="container">
@@ -83,23 +97,76 @@ text-align:center;
 <p id="total">0</p>
 </div>
 
-</div>
-
-</div>
-
-<div class="card">
-<h3>Requests per Minute</h3>
+<div class="metric">
+<h4>Requests / Min</h4>
 <p id="rpm">0</p>
 </div>
 
-<div class="card">
-<h3>Top IPs</h3>
-<ul id="topIps"></ul>
+</div>
+
 </div>
 
 <div class="card">
+
+<h3>Active Clients</h3>
+
+<p id="clients">0</p>
+
+</div>
+
+<div class="card">
+
+<h3>Top IPs</h3>
+
+<ul id="topIps"></ul>
+
+</div>
+
+<div class="card">
+
 <h3>Traffic Graph</h3>
+
 <canvas id="chart"></canvas>
+
+</div>
+
+<div class="card">
+
+<h3>Tech Stack</h3>
+
+<ul>
+
+<li>Python</li>
+<li>FastAPI</li>
+<li>Redis</li>
+<li>Docker</li>
+<li>Render Cloud</li>
+<li>Chart.js</li>
+
+</ul>
+
+</div>
+
+<div class="card">
+
+<h3>About This Project</h3>
+
+<p>
+
+This project demonstrates a distributed rate limiting system using FastAPI and Redis.
+
+It implements multiple algorithms including token bucket, sliding window, and fixed window.
+
+The system tracks traffic metrics, monitors abusive clients, and visualizes API traffic in real time.
+
+</p>
+
+</div>
+
+<div class="footer">
+
+<p>© Prafful Gupta</p>
+
 </div>
 
 </div>
@@ -110,8 +177,8 @@ let chart
 
 async function loadStats(){
 
-const res=await fetch("/stats")
-const data=await res.json()
+const res = await fetch("/stats")
+const data = await res.json()
 
 document.getElementById("allowed").innerText=data.allowed
 document.getElementById("blocked").innerText=data.blocked
@@ -143,29 +210,44 @@ chart.update()
 
 }
 
-async function loadTopIps(){
+async function loadIps(){
 
-const res=await fetch("/top_ips")
-const data=await res.json()
+const res = await fetch("/top_ips")
+const data = await res.json()
 
 const list=document.getElementById("topIps")
 
 list.innerHTML=""
 
 data.forEach(item=>{
+
 const li=document.createElement("li")
+
 li.innerText=item.ip+" : "+item.requests
+
 list.appendChild(li)
+
 })
+
+}
+
+async function loadClients(){
+
+const res=await fetch("/active_clients")
+const data=await res.json()
+
+document.getElementById("clients").innerText=data.active_clients
 
 }
 
 setInterval(()=>{
 loadStats()
-loadTopIps()
+loadIps()
+loadClients()
 },2000)
 
 </script>
 
 </body>
+
 </html>

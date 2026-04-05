@@ -45,13 +45,13 @@ def stats():
         window
     )
 
-    requests_last_minute = redis_client.zcard("request_timestamps")
+    rpm = redis_client.zcard("request_timestamps")
 
     return {
         "allowed": allowed,
         "blocked": blocked,
         "total": allowed + blocked,
-        "requests_per_minute": requests_last_minute
+        "requests_per_minute": rpm
     }
 
 
@@ -71,11 +71,19 @@ def top_ips():
     ]
 
 
+@app.get("/active_clients")
+def active_clients():
+
+    count = redis_client.zcard("top_ips")
+
+    return {"active_clients": count}
+
+
 @app.get("/system")
 def system():
 
     return {
-        "algorithm_default": "Token Bucket",
+        "default_algorithm": "Token Bucket",
         "capacity": 10,
         "refill_rate": 0.2,
         "backend": "Redis",
