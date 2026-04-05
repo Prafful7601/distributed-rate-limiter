@@ -1,8 +1,12 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import JSONResponse
+
 from app.limiter.redis_limiter import RedisRateLimiter
+from app.storage.redis_client import redis_client
+
 
 limiter = RedisRateLimiter(capacity=10, refill_rate=1)
+
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
 
@@ -10,11 +14,19 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
 
         user_ip = request.client.host
 
-        if not limiter.allow_request(user_ip):
+        allowed = limiter.allow_request(user_ip)
+
+        if not allowed:
+
+            redis_client.incr("blocked_requests")
+
             return JSONResponse(
                 status_code=429,
                 content={"error": "Rate limit exceeded"}
             )
 
+        redis_client.incr("allowed_requests")
+
         response = await call_next(request)
+
         return response

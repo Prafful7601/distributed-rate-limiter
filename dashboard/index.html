@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Rate Limiter Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+
+<h2>Rate Limiter Dashboard</h2>
+
+<canvas id="chart" width="400" height="200"></canvas>
+
+<script>
+
+async function loadStats(){
+
+    const response = await fetch("/stats")
+
+    const data = await response.json()
+
+    const ctx = document.getElementById("chart")
+
+    new Chart(ctx, {
+
+        type: "bar",
+
+        data: {
+
+            labels: ["Allowed Requests","Blocked Requests"],
+
+            datasets: [{
+                label: "Traffic",
+                data: [data.allowed_requests, data.blocked_requests]
+            }]
+
+        }
+
+    })
+
+}
+
+loadStats()
+
+</script>
+
+</body>
+
+</html>

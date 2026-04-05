@@ -1,9 +1,9 @@
-import time
 from app.storage.redis_client import redis_client
+
 
 class RedisRateLimiter:
 
-    def __init__(self, capacity, refill_rate):
+    def __init__(self, capacity=10, refill_rate=1):
         self.capacity = capacity
         self.refill_rate = refill_rate
 
@@ -23,4 +23,5 @@ class RedisRateLimiter:
             return False
 
         redis_client.decr(key)
+
         return True
