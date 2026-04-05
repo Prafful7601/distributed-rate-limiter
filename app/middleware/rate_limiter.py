@@ -5,7 +5,7 @@ from app.limiter.redis_limiter import RedisRateLimiter
 from app.storage.redis_client import redis_client
 
 
-limiter = RedisRateLimiter(capacity=10, refill_rate=1)
+limiter = RedisRateLimiter(capacity=10, refill_rate=0.1)
 
 
 EXCLUDED_PATHS = {
