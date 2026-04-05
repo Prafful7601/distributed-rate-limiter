@@ -3,85 +3,243 @@
 
 <head>
 
-<title>Rate Limiter Dashboard</title>
+<title>Distributed Rate Limiter</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
-body {
-    font-family: Arial;
-    background: #0f172a;
-    color: white;
-    text-align: center;
+body{
+font-family: Arial;
+background:#0f172a;
+color:white;
+margin:0;
 }
 
-h1 {
-    margin-top: 40px;
+.navbar{
+background:#020617;
+padding:15px;
+display:flex;
+justify-content:space-between;
+align-items:center;
 }
 
-.container {
-    width: 600px;
-    margin: auto;
-    background: #1e293b;
-    padding: 30px;
-    border-radius: 10px;
+.navbar h2{
+margin:0;
 }
 
-canvas {
-    margin-top: 20px;
+.navbar a{
+color:white;
+text-decoration:none;
+background:#2563eb;
+padding:8px 16px;
+border-radius:6px;
+}
+
+.container{
+width:1000px;
+margin:auto;
+margin-top:30px;
+}
+
+.card{
+background:#1e293b;
+padding:25px;
+border-radius:10px;
+margin-bottom:20px;
+}
+
+.metrics{
+display:flex;
+justify-content:space-between;
+}
+
+.metric{
+background:#020617;
+padding:20px;
+border-radius:8px;
+width:30%;
+text-align:center;
+}
+
+.tech{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:15px;
+}
+
+.tech div{
+background:#020617;
+padding:15px;
+border-radius:6px;
+text-align:center;
 }
 
 </style>
 
 </head>
 
+
 <body>
 
-<h1>Distributed Rate Limiter</h1>
+<div class="navbar">
+
+<h2>Distributed Rate Limiter</h2>
+
+<a href="/">API</a>
+
+</div>
+
 
 <div class="container">
 
+
+<div class="card">
+
 <h3>Traffic Metrics</h3>
+
+<div class="metrics">
+
+<div class="metric">
+<h4>Allowed</h4>
+<p id="allowed">0</p>
+</div>
+
+<div class="metric">
+<h4>Blocked</h4>
+<p id="blocked">0</p>
+</div>
+
+<div class="metric">
+<h4>Total</h4>
+<p id="total">0</p>
+</div>
+
+</div>
+
+</div>
+
+
+
+<div class="card">
+
+<h3>Traffic Graph</h3>
 
 <canvas id="chart"></canvas>
 
 </div>
 
+
+
+<div class="card">
+
+<h3>System Information</h3>
+
+<div class="tech" id="systemInfo">
+
+</div>
+
+</div>
+
+
+
+<div class="card">
+
+<h3>Tech Stack</h3>
+
+<div class="tech">
+
+<div>FastAPI</div>
+<div>Redis</div>
+<div>Docker</div>
+<div>Python</div>
+<div>Render Cloud</div>
+<div>Chart.js</div>
+
+</div>
+
+</div>
+
+
+</div>
+
+
+
 <script>
+
+let chart
 
 async function loadStats(){
 
-    const response = await fetch("/stats")
+const res = await fetch("/stats")
 
-    const data = await response.json()
+const data = await res.json()
 
-    const ctx = document.getElementById("chart")
+document.getElementById("allowed").innerText=data.allowed
+document.getElementById("blocked").innerText=data.blocked
+document.getElementById("total").innerText=data.total
 
-    new Chart(ctx, {
+if(!chart){
 
-        type: "bar",
+const ctx=document.getElementById("chart")
 
-        data: {
+chart=new Chart(ctx,{
 
-            labels: ["Allowed Requests","Blocked Requests"],
+type:"bar",
 
-            datasets: [{
-                label: "Requests",
-                data: [data.allowed_requests, data.blocked_requests],
-                backgroundColor: ["#22c55e","#ef4444"]
-            }]
+data:{
+labels:["Allowed","Blocked"],
+datasets:[{
+label:"Requests",
+data:[data.allowed,data.blocked],
+backgroundColor:["#22c55e","#ef4444"]
+}]
+}
 
-        }
-
-    })
+})
 
 }
 
+else{
+
+chart.data.datasets[0].data=[data.allowed,data.blocked]
+chart.update()
+
+}
+
+}
+
+
+
+async function loadSystem(){
+
+const res=await fetch("/system")
+
+const data=await res.json()
+
+const container=document.getElementById("systemInfo")
+
+for(const key in data){
+
+const el=document.createElement("div")
+
+el.innerHTML=`<b>${key}</b><br>${data[key]}`
+
+container.appendChild(el)
+
+}
+
+}
+
+
+
 loadStats()
+loadSystem()
+
+setInterval(loadStats,2000)
 
 </script>
 
-</body>
 
+</body>
 </html>

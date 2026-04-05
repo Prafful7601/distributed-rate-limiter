@@ -12,11 +12,14 @@ app.add_middleware(RateLimiterMiddleware)
 
 @app.get("/")
 def home():
-    return {"message": "Request successful"}
+    return {
+        "service": "Distributed Rate Limiter",
+        "status": "running"
+    }
 
 
 @app.get("/api/data")
-def get_data():
+def protected_api():
     return {"data": "Protected resource"}
 
 
@@ -27,8 +30,21 @@ def stats():
     blocked = redis_client.get("blocked_requests") or 0
 
     return {
-        "allowed_requests": int(allowed),
-        "blocked_requests": int(blocked)
+        "allowed": int(allowed),
+        "blocked": int(blocked),
+        "total": int(allowed) + int(blocked)
+    }
+
+
+@app.get("/system")
+def system_info():
+
+    return {
+        "algorithm": "Token Bucket",
+        "capacity": 10,
+        "refill_rate": 0.1,
+        "backend": "Redis",
+        "framework": "FastAPI"
     }
 
 
