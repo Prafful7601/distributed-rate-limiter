@@ -1,23 +1,16 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import JSONResponse
-from app.limiter.token_bucket import TokenBucket
+from app.limiter.redis_limiter import RedisRateLimiter
 
-buckets = {}
-
-def get_bucket(user_id):
-    if user_id not in buckets:
-        buckets[user_id] = TokenBucket(capacity=5, refill_rate=1)
-    return buckets[user_id]
-
+limiter = RedisRateLimiter(capacity=10, refill_rate=1)
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request, call_next):
 
         user_ip = request.client.host
-        bucket = get_bucket(user_ip)
 
-        if not bucket.allow_request():
+        if not limiter.allow_request(user_ip):
             return JSONResponse(
                 status_code=429,
                 content={"error": "Rate limit exceeded"}
