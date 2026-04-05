@@ -1,3 +1,4 @@
+import time
 from app.storage.redis_client import redis_client
 
 
@@ -11,17 +12,42 @@ class RedisRateLimiter:
 
         key = f"rate_limit:{user_id}"
 
-        tokens = redis_client.get(key)
+        data = redis_client.hgetall(key)
 
-        if tokens is None:
-            redis_client.set(key, self.capacity - 1, ex=60)
+        now = time.time()
+
+        if not data:
+
+            redis_client.hset(key, mapping={
+                "tokens": self.capacity - 1,
+                "timestamp": now
+            })
+
+            redis_client.expire(key, 60)
+
             return True
 
-        tokens = int(tokens)
+        tokens = float(data["tokens"])
+        last = float(data["timestamp"])
 
-        if tokens <= 0:
+        elapsed = now - last
+
+        tokens = min(self.capacity, tokens + elapsed * self.refill_rate)
+
+        if tokens < 1:
+
+            redis_client.hset(key, mapping={
+                "tokens": tokens,
+                "timestamp": now
+            })
+
             return False
 
-        redis_client.decr(key)
+        tokens -= 1
+
+        redis_client.hset(key, mapping={
+            "tokens": tokens,
+            "timestamp": now
+        })
 
         return True
