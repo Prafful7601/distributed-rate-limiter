@@ -9,11 +9,10 @@ from app.middleware.rate_limiter import RateLimiterMiddleware
 from app.storage.redis_client import redis_client
 
 
-app = FastAPI()
+app = FastAPI(title="Distributed Rate Limiter")
 
 app.add_middleware(RateLimiterMiddleware)
 
-# serve css/js files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
@@ -24,20 +23,32 @@ def home():
     <html>
     <head>
         <title>Distributed Rate Limiter</title>
+        <style>
+        body{
+        font-family:Arial;
+        background:#0f172a;
+        color:white;
+        padding:40px
+        }
+        a{
+        color:#38bdf8;
+        text-decoration:none
+        }
+        </style>
     </head>
 
-    <body style="font-family:Arial;padding:40px">
+    <body>
 
     <h1>Distributed Rate Limiter</h1>
 
-    <p>Production style distributed rate limiting system.</p>
+    <p>Production style API rate limiter built with FastAPI and Redis.</p>
 
     <h3>Navigation</h3>
 
     <ul>
-        <li><a href="/api/data">Test API</a></li>
+        <li><a href="/api/data">Test API Endpoint</a></li>
         <li><a href="/dashboard">Monitoring Dashboard</a></li>
-        <li><a href="/docs">API Docs</a></li>
+        <li><a href="/docs">Swagger API Docs</a></li>
     </ul>
 
     </body>
@@ -86,6 +97,33 @@ def top_ips():
         {"ip": ip, "requests": int(score)}
         for ip, score in data
     ]
+
+
+@app.get("/active_clients")
+def active_clients():
+
+    count = redis_client.zcard("top_ips")
+
+    return {"active_clients": count}
+
+
+@app.get("/system")
+def system():
+
+    redis_client.ping()
+
+    return {
+        "redis": "connected",
+        "framework": "FastAPI",
+        "rate_limiter": "Redis Lua Script",
+        "deployment": "Render"
+    }
+
+
+@app.get("/health")
+def health():
+
+    return {"status": "healthy"}
 
 
 @app.get("/dashboard")

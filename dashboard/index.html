@@ -3,7 +3,7 @@
 
 <head>
 
-<title>Distributed Rate Limiter Dashboard</title>
+<title>Rate Limiter Dashboard</title>
 
 <link rel="stylesheet" href="/static/style.css">
 
@@ -21,6 +21,7 @@
 
 <a href="/">API</a>
 <a href="/dashboard">Dashboard</a>
+<a href="/docs">Docs</a>
 
 </nav>
 
@@ -54,7 +55,7 @@
 
 <div class="card">
 
-<h2>Traffic</h2>
+<h2>Traffic Overview</h2>
 
 <canvas id="chart"></canvas>
 
@@ -64,7 +65,43 @@
 
 <h2>Top Clients</h2>
 
-<ul id="ips"></ul>
+<table>
+
+<thead>
+<tr>
+<th>IP</th>
+<th>Requests</th>
+</tr>
+</thead>
+
+<tbody id="ipTable"></tbody>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h2>System Info</h2>
+
+<ul id="system"></ul>
+
+</div>
+
+<div class="card">
+
+<h2>Tech Stack</h2>
+
+<ul>
+
+<li>Python</li>
+<li>FastAPI</li>
+<li>Redis</li>
+<li>Docker</li>
+<li>Render</li>
+<li>Chart.js</li>
+
+</ul>
 
 </div>
 
@@ -72,7 +109,7 @@
 
 <footer>
 
-© Prafful Gupta
+<p>© Prafful Gupta</p>
 
 </footer>
 
@@ -101,7 +138,7 @@ labels:["Allowed","Blocked"],
 datasets:[{
 label:"Requests",
 data:[data.allowed,data.blocked],
-backgroundColor:["green","red"]
+backgroundColor:["#22c55e","#ef4444"]
 }]
 }
 })
@@ -117,18 +154,39 @@ chart.update()
 
 async function loadIps(){
 
-const res=await fetch("/top_ips")
+const res = await fetch("/top_ips")
+const data = await res.json()
+
+const table = document.getElementById("ipTable")
+
+table.innerHTML=""
+
+data.forEach(row=>{
+
+const tr=document.createElement("tr")
+
+tr.innerHTML="<td>"+row.ip+"</td><td>"+row.requests+"</td>"
+
+table.appendChild(tr)
+
+})
+
+}
+
+async function loadSystem(){
+
+const res=await fetch("/system")
 const data=await res.json()
 
-const list=document.getElementById("ips")
+const list=document.getElementById("system")
 
 list.innerHTML=""
 
-data.forEach(item=>{
+Object.entries(data).forEach(([k,v])=>{
 
 const li=document.createElement("li")
 
-li.innerText=item.ip+" : "+item.requests
+li.innerText=k+" : "+v
 
 list.appendChild(li)
 
@@ -139,6 +197,7 @@ list.appendChild(li)
 setInterval(()=>{
 loadStats()
 loadIps()
+loadSystem()
 },2000)
 
 </script>
