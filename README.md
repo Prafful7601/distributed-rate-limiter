@@ -1,8 +1,16 @@
 # Distributed Rate Limiter
 
-A production-style **distributed API rate limiting system** built with FastAPI and Redis, featuring real-time monitoring, traffic analytics, and multiple rate limiting algorithms.
+This project implements a **distributed API rate limiting system** designed to protect backend services from excessive traffic, abuse, and denial-of-service scenarios.
 
-This project demonstrates how modern backend systems protect APIs from abuse, enforce fair usage policies, and maintain system stability under high traffic.
+The system enforces request quotas across clients using **Redis-backed distributed algorithms**, ensuring consistent rate limits even when the API runs across multiple server instances.
+
+It includes:
+
+- Multiple rate limiting algorithms
+- Redis-based distributed state management
+- Atomic Lua scripts to eliminate race conditions
+- Monitoring dashboard with traffic analytics
+- Deployment-ready architecture
 
 ---
 
@@ -27,21 +35,22 @@ https://github.com/Prafful7601/distributed-rate-limiter
 The system uses **FastAPI middleware to intercept requests** and enforce rate limits using Redis as a shared state store.
 
 Client Requests
-│
-▼
-FastAPI Application
-│
-Rate Limiter Middleware
-│
-├── Token Bucket Limiter
-├── Fixed Window Limiter
-└── Sliding Window Limiter
-│
-▼
-Redis (Distributed State Store)
-│
-▼
-Traffic Analytics + Dashboard
+      │
+      ▼
+FastAPI Middleware
+      │
+      ▼
+Rate Limiting Engine
+(Token Bucket / Sliding Window / Fixed Window)
+      │
+      ▼
+Redis (Central State Store)
+      │
+      ▼
+Analytics & Monitoring APIs
+      │
+      ▼
+Dashboard UI
 
 
 Redis allows **multiple API servers to share rate limit state**, enabling horizontal scaling.
@@ -76,21 +85,39 @@ Dashboard displays:
 
 ---
 
-# Features
+## Features
 
-## Distributed Rate Limiting
+• Distributed rate limiting across multiple API instances  
+• Token Bucket, Fixed Window, and Sliding Window algorithms  
+• Redis-backed request tracking  
+• Atomic Lua execution to prevent race conditions  
+• API key based rate limiting support  
+• Real-time traffic analytics dashboard  
+• Top client IP tracking  
+• Requests per minute monitoring  
+• Dockerized deployment  
+• Live cloud deployment on Render
 
-All rate limit state is stored in Redis, allowing multiple API servers to enforce the same limits.
+---
 
-API Instance 1
-API Instance 2
-API Instance 3
-│
-▼
-Redis Shared State
+## Atomic Rate Limiting with Redis Lua
 
+To ensure correct behavior under high concurrency, rate limiting operations are executed using **Redis Lua scripts**.
 
-This architecture supports horizontal scaling.
+Advantages:
+
+- Atomic execution
+- Eliminates race conditions
+- Ensures consistent request counts
+- Works correctly in distributed environments
+
+Lua scripts allow the limiter to:
+
+1. Read request history
+2. Update counters
+3. Apply rate limiting logic
+
+All in a **single atomic Redis operation**.
 
 ---
 
@@ -165,6 +192,34 @@ GET /api/data?api_key=user1
 
 ---
 
+## API Endpoints
+
+Main API
+
+GET /
+Test endpoint protected by rate limiting.
+
+Monitoring APIs
+
+GET /stats
+Returns allowed and blocked request statistics.
+
+GET /top_ips
+Returns most active client IP addresses.
+
+GET /active_clients
+Returns currently active clients.
+
+GET /system
+Returns system metrics.
+
+Dashboard
+
+GET /dashboard
+Visual dashboard for monitoring rate limiting metrics.
+
+---
+
 # Analytics Endpoints
 
 Traffic statistics
@@ -183,19 +238,16 @@ Example response:
 ---
 
 Top IP addresses
-
 GET /top_ips
 
 ---
 
 Active clients
-
 GET /active_clients
 
 ---
 
 System configuration
-
 GET /system
 
 ---
@@ -216,6 +268,23 @@ Users: 100
 Spawn Rate: 10
 
 This simulates burst traffic and demonstrates the limiter blocking excessive requests.
+
+---
+## Monitoring Dashboard
+
+The project includes a monitoring dashboard that visualizes system traffic.
+
+Metrics displayed:
+
+- Allowed requests
+- Blocked requests
+- Total traffic
+- Requests per minute
+- Top client IPs
+
+Dashboard URL:
+
+http://localhost:8000/dashboard
 
 ---
 
@@ -246,25 +315,47 @@ http://localhost:8000/dashboard
 
 # Project Structure
 
-distributed-rate-limiter
-
-app/
+distributed-rate-limiter/
 │
-├── main.py
+├── app/
+│   │
+│   ├── main.py
+│   │   FastAPI application entry point
+│   │   Registers middleware, routes, and dashboard endpoints
+│   │
+│   ├── middleware/
+│   │   └── rate_limiter.py
+│   │       Global middleware that intercepts requests and applies rate limiting
+│   │
+│   ├── limiter/
+│   │   ├── redis_lua_limiter.py
+│   │   │   Distributed rate limiter implemented with Redis Lua scripts
+│   │   │
+│   │   ├── fixed_window_limiter.py
+│   │   │   Fixed window rate limiting algorithm
+│   │   │
+│   │   └── sliding_window_limiter.py
+│   │       Sliding window rate limiting algorithm
+│   │
+│   ├── storage/
+│   │   └── redis_client.py
+│   │       Redis connection setup used across the system
+│   │
+│   └── dashboard/
+│       ├── index.html
+│       │   Monitoring dashboard UI
+│       │
+│       └── styles.css
+│           Dashboard styling
 │
-├── limiter/
-│ ├── redis_limiter.py
-│ ├── fixed_window_limiter.py
-│ └── sliding_window_limiter.py
+├── requirements.txt
+│   Python dependencies
 │
-├── middleware/
-│ └── rate_limiter.py
+├── Dockerfile
+│   Container configuration for deployment
 │
-└── storage/
-└── redis_client.py
-
-dashboard/
-└── index.html
+└── README.md
+    Project documentation
 
 load_test.py
 Dockerfile
@@ -273,28 +364,30 @@ README.md
 
 ---
 
-# Tech Stack
+## Tech Stack
 
-Backend:
+Backend
 - Python
 - FastAPI
-- Redis
+- Starlette Middleware
 
-Infrastructure:
+Distributed Systems
+- Redis
+- Redis Lua scripting
+
+Algorithms
+- Token Bucket
+- Sliding Window
+- Fixed Window
+
+Infrastructure
 - Docker
 - Render Cloud
 
-Frontend:
+Frontend
 - HTML
 - CSS
-- JavaScript
 - Chart.js
-
-
-Observability:
-- Redis analytics
-- Live monitoring dashboard
-- Traffic metrics
 
 ---
 
