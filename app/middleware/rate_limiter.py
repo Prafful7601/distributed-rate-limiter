@@ -6,10 +6,12 @@ from fastapi.responses import JSONResponse
 from app.storage.redis_client import redis_client
 from app.limiter.redis_limiter import RedisRateLimiter
 from app.limiter.fixed_window_limiter import FixedWindowLimiter
+from app.limiter.sliding_window_limiter import SlidingWindowLimiter
 
 
 token_limiter = RedisRateLimiter(capacity=10, refill_rate=0.2)
 fixed_limiter = FixedWindowLimiter(limit=10)
+sliding_limiter = SlidingWindowLimiter(limit=10, window=60)
 
 
 EXCLUDED_PATHS = {
@@ -31,16 +33,28 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         if path in EXCLUDED_PATHS:
             return await call_next(request)
 
-        user_ip = request.client.host
+        # identify client
+        api_key = request.query_params.get("api_key")
 
+        if api_key:
+            user_id = f"key:{api_key}"
+        else:
+            user_id = request.client.host
+
+        # choose algorithm
         algorithm = request.query_params.get("algorithm", "token")
 
         if algorithm == "fixed":
-            allowed = fixed_limiter.allow_request(user_ip)
-        else:
-            allowed = token_limiter.allow_request(user_ip)
+            allowed = fixed_limiter.allow_request(user_id)
 
-        redis_client.zincrby("top_ips", 1, user_ip)
+        elif algorithm == "sliding":
+            allowed = sliding_limiter.allow_request(user_id)
+
+        else:
+            allowed = token_limiter.allow_request(user_id)
+
+        # analytics
+        redis_client.zincrby("top_ips", 1, user_id)
 
         redis_client.zadd(
             "request_timestamps",
