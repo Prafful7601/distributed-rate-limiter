@@ -2,7 +2,7 @@ import time
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 
 from app.middleware.rate_limiter import RateLimiterMiddleware
 from app.storage.redis_client import redis_client
@@ -13,13 +13,31 @@ app = FastAPI()
 app.add_middleware(RateLimiterMiddleware)
 
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 def home():
 
-    return {
-        "service": "Distributed Rate Limiter",
-        "status": "running"
-    }
+    return """
+    <html>
+    <head>
+        <title>Distributed Rate Limiter API</title>
+    </head>
+    <body style="font-family: Arial; padding:40px">
+
+    <h1>Distributed Rate Limiter</h1>
+
+    <p>This service demonstrates distributed API rate limiting using FastAPI and Redis.</p>
+
+    <h2>Endpoints</h2>
+
+    <ul>
+        <li><a href="/api/data">Test API Endpoint</a></li>
+        <li><a href="/dashboard">Monitoring Dashboard</a></li>
+        <li><a href="/docs">Swagger Documentation</a></li>
+    </ul>
+
+    </body>
+    </html>
+    """
 
 
 @app.get("/api/data")
@@ -39,11 +57,7 @@ def stats():
     now = time.time()
     window = now - 60
 
-    redis_client.zremrangebyscore(
-        "request_timestamps",
-        0,
-        window
-    )
+    redis_client.zremrangebyscore("request_timestamps", 0, window)
 
     rpm = redis_client.zcard("request_timestamps")
 
@@ -77,18 +91,6 @@ def active_clients():
     count = redis_client.zcard("top_ips")
 
     return {"active_clients": count}
-
-
-@app.get("/system")
-def system():
-
-    return {
-        "default_algorithm": "Token Bucket",
-        "capacity": 10,
-        "refill_rate": 0.2,
-        "backend": "Redis",
-        "framework": "FastAPI"
-    }
 
 
 @app.get("/dashboard")

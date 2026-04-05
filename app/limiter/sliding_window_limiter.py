@@ -10,7 +10,7 @@ class SlidingWindowLimiter:
 
     def allow_request(self, user_id):
 
-        key = f"sw:{user_id}"
+        key = f"rate:{user_id}"
 
         now = time.time()
         window_start = now - self.window
