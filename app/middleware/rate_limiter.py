@@ -8,9 +8,24 @@ from app.storage.redis_client import redis_client
 limiter = RedisRateLimiter(capacity=10, refill_rate=1)
 
 
+EXCLUDED_PATHS = {
+    "/dashboard",
+    "/stats",
+    "/docs",
+    "/openapi.json",
+    "/favicon.ico"
+}
+
+
 class RateLimiterMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request, call_next):
+
+        path = request.url.path
+
+        # Skip rate limiting for dashboard and stats
+        if path in EXCLUDED_PATHS:
+            return await call_next(request)
 
         user_ip = request.client.host
 
