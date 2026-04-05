@@ -4,7 +4,7 @@ from app.storage.redis_client import redis_client
 
 class RedisRateLimiter:
 
-    def __init__(self, capacity=10, refill_rate=1):
+    def __init__(self, capacity=10, refill_rate=0.2):
         self.capacity = capacity
         self.refill_rate = refill_rate
 
@@ -12,42 +12,51 @@ class RedisRateLimiter:
 
         key = f"rate_limit:{user_id}"
 
-        data = redis_client.hgetall(key)
+        script = """
+        local key = KEYS[1]
+
+        local capacity = tonumber(ARGV[1])
+        local refill_rate = tonumber(ARGV[2])
+        local now = tonumber(ARGV[3])
+
+        local data = redis.call("HMGET", key, "tokens", "timestamp")
+
+        local tokens = tonumber(data[1])
+        local timestamp = tonumber(data[2])
+
+        if tokens == nil then
+            tokens = capacity
+            timestamp = now
+        end
+
+        local delta = math.max(0, now - timestamp)
+        local refill = delta * refill_rate
+
+        tokens = math.min(capacity, tokens + refill)
+
+        if tokens < 1 then
+            redis.call("HMSET", key, "tokens", tokens, "timestamp", now)
+            redis.call("EXPIRE", key, 120)
+            return 0
+        end
+
+        tokens = tokens - 1
+
+        redis.call("HMSET", key, "tokens", tokens, "timestamp", now)
+        redis.call("EXPIRE", key, 120)
+
+        return 1
+        """
 
         now = time.time()
 
-        if not data:
+        result = redis_client.eval(
+            script,
+            1,
+            key,
+            self.capacity,
+            self.refill_rate,
+            now
+        )
 
-            redis_client.hset(key, mapping={
-                "tokens": self.capacity - 1,
-                "timestamp": now
-            })
-
-            redis_client.expire(key, 60)
-
-            return True
-
-        tokens = float(data["tokens"])
-        last = float(data["timestamp"])
-
-        elapsed = now - last
-
-        tokens = min(self.capacity, tokens + elapsed * self.refill_rate)
-
-        if tokens < 1:
-
-            redis_client.hset(key, mapping={
-                "tokens": tokens,
-                "timestamp": now
-            })
-
-            return False
-
-        tokens -= 1
-
-        redis_client.hset(key, mapping={
-            "tokens": tokens,
-            "timestamp": now
-        })
-
-        return True
+        return result == 1

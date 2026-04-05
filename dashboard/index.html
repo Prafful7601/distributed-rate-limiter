@@ -10,30 +10,17 @@
 <style>
 
 body{
-font-family: Arial;
+font-family:Arial;
 background:#0f172a;
 color:white;
 margin:0;
 }
 
-.navbar{
+.nav{
 background:#020617;
 padding:15px;
 display:flex;
 justify-content:space-between;
-align-items:center;
-}
-
-.navbar h2{
-margin:0;
-}
-
-.navbar a{
-color:white;
-text-decoration:none;
-background:#2563eb;
-padding:8px 16px;
-border-radius:6px;
 }
 
 .container{
@@ -45,8 +32,8 @@ margin-top:30px;
 .card{
 background:#1e293b;
 padding:25px;
-border-radius:10px;
 margin-bottom:20px;
+border-radius:8px;
 }
 
 .metrics{
@@ -56,22 +43,9 @@ justify-content:space-between;
 
 .metric{
 background:#020617;
-padding:20px;
-border-radius:8px;
-width:30%;
-text-align:center;
-}
-
-.tech{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:15px;
-}
-
-.tech div{
-background:#020617;
 padding:15px;
 border-radius:6px;
+width:30%;
 text-align:center;
 }
 
@@ -79,20 +53,14 @@ text-align:center;
 
 </head>
 
-
 <body>
 
-<div class="navbar">
-
+<div class="nav">
 <h2>Distributed Rate Limiter</h2>
-
-<a href="/">API</a>
-
+<a href="/" style="color:white">API</a>
 </div>
 
-
 <div class="container">
-
 
 <div class="card">
 
@@ -119,51 +87,22 @@ text-align:center;
 
 </div>
 
-
+<div class="card">
+<h3>Requests per Minute</h3>
+<p id="rpm">0</p>
+</div>
 
 <div class="card">
+<h3>Top IPs</h3>
+<ul id="topIps"></ul>
+</div>
 
+<div class="card">
 <h3>Traffic Graph</h3>
-
 <canvas id="chart"></canvas>
-
-</div>
-
-
-
-<div class="card">
-
-<h3>System Information</h3>
-
-<div class="tech" id="systemInfo">
-
 </div>
 
 </div>
-
-
-
-<div class="card">
-
-<h3>Tech Stack</h3>
-
-<div class="tech">
-
-<div>FastAPI</div>
-<div>Redis</div>
-<div>Docker</div>
-<div>Python</div>
-<div>Render Cloud</div>
-<div>Chart.js</div>
-
-</div>
-
-</div>
-
-
-</div>
-
-
 
 <script>
 
@@ -171,22 +110,20 @@ let chart
 
 async function loadStats(){
 
-const res = await fetch("/stats")
-
-const data = await res.json()
+const res=await fetch("/stats")
+const data=await res.json()
 
 document.getElementById("allowed").innerText=data.allowed
 document.getElementById("blocked").innerText=data.blocked
 document.getElementById("total").innerText=data.total
+document.getElementById("rpm").innerText=data.requests_per_minute
 
 if(!chart){
 
 const ctx=document.getElementById("chart")
 
 chart=new Chart(ctx,{
-
 type:"bar",
-
 data:{
 labels:["Allowed","Blocked"],
 datasets:[{
@@ -195,12 +132,9 @@ data:[data.allowed,data.blocked],
 backgroundColor:["#22c55e","#ef4444"]
 }]
 }
-
 })
 
-}
-
-else{
+}else{
 
 chart.data.datasets[0].data=[data.allowed,data.blocked]
 chart.update()
@@ -209,37 +143,29 @@ chart.update()
 
 }
 
+async function loadTopIps(){
 
-
-async function loadSystem(){
-
-const res=await fetch("/system")
-
+const res=await fetch("/top_ips")
 const data=await res.json()
 
-const container=document.getElementById("systemInfo")
+const list=document.getElementById("topIps")
 
-for(const key in data){
+list.innerHTML=""
 
-const el=document.createElement("div")
-
-el.innerHTML=`<b>${key}</b><br>${data[key]}`
-
-container.appendChild(el)
-
-}
+data.forEach(item=>{
+const li=document.createElement("li")
+li.innerText=item.ip+" : "+item.requests
+list.appendChild(li)
+})
 
 }
 
-
-
+setInterval(()=>{
 loadStats()
-loadSystem()
-
-setInterval(loadStats,2000)
+loadTopIps()
+},2000)
 
 </script>
-
 
 </body>
 </html>
