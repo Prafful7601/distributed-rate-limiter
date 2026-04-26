@@ -116,7 +116,7 @@ def system():
         "redis": "connected",
         "framework": "FastAPI",
         "rate_limiter": "Redis Lua Script",
-        "deployment": "Fly.io"
+        "deployment": "Render"
     }
 
 
